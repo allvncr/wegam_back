@@ -13,7 +13,7 @@ const getAllProjets = async (req, res) => {
     }
 
     const projets = await Projet.find(filter)
-      .sort({ dateAjout: 1 })
+      .sort({ dateAjout: -1 })
       .select("categories titre slug cover video")
       .populate("categories");
     res.json(projets);
@@ -68,11 +68,19 @@ const createProjet = async (req, res) => {
     }
 
     const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-    const cover = files["cover"][0].filename; // Récupérer le nom du fichier de la couverture téléchargée
-    const images = files["images"].map((file) => file.filename); // Récupérer les noms des fichiers des images téléchargées
+
+    let cover = "";
+    if (files["cover"][0]) cover = files["cover"][0].filename;
+
+    let video = "";
+    if (files["video"][0]) video = files["video"][0].filename;
+
+    let images = [];
+    if (files["images"]) images = files["images"].map((file) => file.filename); // Récupérer les noms des fichiers des images téléchargées
 
     const projet = new Projet({
       cover: `${basePath}${cover}`,
+      video: `${basePath}${video}`,
       images: images.map((image) => `${basePath}${image}`), // Construire les chemins complets des images téléchargées
       ...req.body,
     });
@@ -103,6 +111,13 @@ const updateProjet = async (req, res) => {
     if (files["cover"]) {
       updateData.cover = `${req.protocol}://${req.get("host")}/public/uploads/${
         files["cover"][0].filename
+      }`;
+    }
+
+    // Si un fichier est envoyé pour la couverture, mettre à jour la couverture
+    if (files["video"]) {
+      updateData.video = `${req.protocol}://${req.get("host")}/public/uploads/${
+        files["video"][0].filename
       }`;
     }
 

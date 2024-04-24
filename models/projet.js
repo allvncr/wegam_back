@@ -37,6 +37,8 @@ const ProjetSchema = new mongoose.Schema({
   },
   dateAjout: { type: Date, default: Date.now },
   dateModification: { type: Date, default: Date.now },
+  aLaUne: { type: Boolean, default: false },
+  actif: { type: Boolean, default: true },
 });
 
 ProjetSchema.pre("save", async function (next) {
