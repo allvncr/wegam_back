@@ -1,19 +1,19 @@
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteBase /
-RewriteRule ^server/(.*)?$ https://127.0.0.1:3000/$1 [P,L]
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
-PassengerAppRoot "/home/cp2179530p23/backend.phonyland.com"
+PassengerAppRoot "/home/cp1962158p22/public_html/backend.wegamstudio.com"
 PassengerBaseURI "/"
-PassengerNodejs "/home/cp2179530p23/nodevenv/backend.phonyland.com/16/bin/node"
+PassengerNodejs "/home/cp1962158p22/nodevenv/public_html/backend.wegamstudio.com/16/bin/node"
 PassengerAppType node
 PassengerStartupFile app.js
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
 # DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
 <IfModule Litespeed>
-SetEnv MONGO_URI mongodb+srv://AllvnCr:AllvnCr2000&@cluster0.y0ai7.mongodb.net/PhonyLand?retryWrites=true&w=majority
-SetEnv JWT_SECRET 3t6v9y$B&E)H@McQfTjWnZr4u7x!z%C*
 SetEnv JWT_LIFETIME 30d
+SetEnv JWT_SECRET 3t6v9y$B&E)H@McQfTjWnZr4u7x!z%C*
+SetEnv MONGO_URI mongodb+srv://AllvnCr:AllvnCr2000&@cluster0.y0ai7.mongodb.net/Wegam?retryWrites=true&w=majority
 </IfModule>
 # DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteBase /
+RewriteRule ^server/(.*)?$ https://127.0.0.1:3000/$1 [P,L]
