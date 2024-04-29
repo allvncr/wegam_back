@@ -2,11 +2,24 @@ const express = require("express");
 require("dotenv").config();
 const app = express();
 const cors = require("cors");
-const connectDB = require("./db/connect");
+const sequelize = require("./db/sequelize");
 const notFound = require("./middleware/not-found");
 const auth = require("./routes/auth");
 const categorie = require("./routes/categorie");
 const projet = require("./routes/projet");
+
+const Categorie = require("./models/categorie");
+const Projet = require("./models/projet");
+const User = require("./models/user");
+
+sequelize
+  .sync({ force: false }) // Utilisez force: true pour supprimer et recréer les tables à chaque synchronisation
+  .then(() => {
+    console.log("Database synchronized successfully");
+  })
+  .catch((error) => {
+    console.error("Error synchronizing database:", error);
+  });
 
 // middleware
 app.use(express.json());
@@ -24,7 +37,7 @@ const port = 3000;
 
 const start = async () => {
   try {
-    await connectDB();
+    await sequelize.authenticate();
     app.listen(port, () => {
       console.log(`Le serveur écoute sur le port ${port}`);
     });

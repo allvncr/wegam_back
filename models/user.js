@@ -1,38 +1,39 @@
-const mongoose = require("mongoose");
+// user.js
+
+const { DataTypes } = require("sequelize");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const sequelize = require("../db/sequelize");
 
-const UserSchema = new mongoose.Schema({
+const User = sequelize.define("User", {
   email: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
     unique: true,
     validate: {
-      validator: (value) => {
-        // Utilisez une expression régulière simple pour valider l'email
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-      },
-      message: "Invalid email format",
+      isEmail: true, // Utilisation de la validation de Sequelize pour l'email
     },
   },
   password: {
-    type: String,
-    required: [true, "Please provide password"],
-    minlength: 4,
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      len: [4, 255], // Longueur minimale: 4, Longueur maximale: 255
+    },
   },
-  dateAjout: { type: Date, default: Date.now },
-  dateModification: { type: Date, default: Date.now },
 });
 
-UserSchema.pre("save", async function () {
+// Middleware pour hasher le mot de passe avant la création de l'utilisateur
+User.beforeCreate(async (user, options) => {
   const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  user.password = await bcrypt.hash(user.password, salt);
 });
 
-UserSchema.methods.createJWT = function () {
+// Méthode pour créer un token JWT pour l'utilisateur
+User.prototype.createJWT = function () {
   return jwt.sign(
     {
-      id: this._id,
+      id: this.id,
       email: this.email,
     },
     process.env.JWT_SECRET,
@@ -41,17 +42,17 @@ UserSchema.methods.createJWT = function () {
     }
   );
 };
-UserSchema.methods.comparePassword = async function (canditatePassword) {
-  const isMatch = await bcrypt.compare(canditatePassword, this.password);
-  return isMatch;
+
+// Generating JWT token
+User.prototype.generateJWT = function () {
+  return jwt.sign({ id: this.id, email: this.email }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_LIFETIME,
+  });
 };
 
-UserSchema.pre("findOneAndUpdate", async function (next) {
-  const update = this.getUpdate();
-  if (update) {
-    this.set({ dateModification: Date.now() });
-  }
-  next();
-});
+// Méthode pour comparer le mot de passe fourni avec le mot de passe haché de l'utilisateur
+User.prototype.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
 
-module.exports = mongoose.model("User", UserSchema);
+module.exports = User;

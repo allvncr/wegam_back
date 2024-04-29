@@ -3,53 +3,33 @@ const Categorie = require("../models/categorie");
 const fs = require("fs");
 const path = require("path");
 
-// Controller function to get all phone brands
+// Controller function to get all projets
 const getAllProjets = async (req, res) => {
   try {
     let filter = {};
-    if (req.query.categories) {
-      const categories = req.query.categories.split(","); // Séparez les catégories en un tableau
-      filter.categories = { $in: categories }; // Utilisez l'opérateur $in pour rechercher les projets avec au moins une des catégories spécifiées
+    if (req.query.categorie) {
+      filter.categorieId = req.query.categorie;
+    }
+    if (req.query.aLaUne) {
+      filter.aLaUne = req.query.aLaUne;
     }
 
-    const projets = await Projet.find(filter)
-      .sort({ dateAjout: -1 })
-      .select("categories titre slug cover video")
-      .populate("categories");
+    const projets = await Projet.findAll({
+      where: filter,
+      include: Categorie, // Utilisez simplement le modèle Categorie ici
+      order: [["createdAt", "DESC"]],
+    });
+
     res.json(projets);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-const getProjetByCategorie = async (req, res) => {
-  try {
-    // Trouvez toutes les catégories existantes
-    const categories = await Categorie.find();
-
-    // Stockez les projets correspondants pour chaque catégorie
-    const projetsParCategorie = [];
-
-    // Pour chaque catégorie, trouvez un projet associé et stockez-le
-    for (const categorie of categories) {
-      const projet = await Projet.findOne({ categories: categorie._id })
-        .select("categories titre slug cover")
-        .populate("categories");
-      if (projet) {
-        projetsParCategorie.push(projet);
-      }
-    }
-
-    res.json(projetsParCategorie);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Controller function to get phone brand by slug
+// Controller function to get projet by slug
 const getProjetBySlug = async (req, res) => {
   try {
-    const projet = await Projet.findOne({ slug: req.params.slug });
+    const projet = await Projet.findOne({ where: { slug: req.params.slug } });
     if (!projet) {
       return res.status(404).json({ message: "Projet introuvable" });
     }
@@ -59,7 +39,7 @@ const getProjetBySlug = async (req, res) => {
   }
 };
 
-// Controller function to create a new phone brand
+// Controller function to create a new projet
 const createProjet = async (req, res) => {
   try {
     const files = req.files;
@@ -70,21 +50,27 @@ const createProjet = async (req, res) => {
     const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
     let cover = "";
-    if (files["cover"][0]) cover = files["cover"][0].filename;
+    if (files["cover"] && files["cover"].length > 0) {
+      cover = files["cover"][0].filename;
+    }
 
     let video = "";
-    if (files["video"][0]) video = files["video"][0].filename;
+    if (files["video"] && files["video"].length > 0) {
+      video = files["video"][0].filename;
+    }
 
     let images = [];
-    if (files["images"]) images = files["images"].map((file) => file.filename); // Récupérer les noms des fichiers des images téléchargées
+    if (files["images"] && files["images"].length > 0) {
+      images = files["images"].map((file) => file.filename);
+    }
 
-    const projet = new Projet({
+    const projet = await Projet.create({
       cover: `${basePath}${cover}`,
       video: `${basePath}${video}`,
-      images: images.map((image) => `${basePath}${image}`), // Construire les chemins complets des images téléchargées
+      images: images.map((image) => `${basePath}${image}`),
       ...req.body,
     });
-    await projet.save();
+
     res.status(201).json(projet);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -97,7 +83,7 @@ const updateProjet = async (req, res) => {
     const { files, body } = req;
 
     // Vérifier si le projet existe
-    const projet = await Projet.findById(id);
+    const projet = await Projet.findByPk(id);
     if (!projet) {
       return res
         .status(404)
@@ -114,7 +100,7 @@ const updateProjet = async (req, res) => {
       }`;
     }
 
-    // Si un fichier est envoyé pour la couverture, mettre à jour la couverture
+    // Si un fichier est envoyé pour la vidéo, mettre à jour la vidéo
     if (files["video"]) {
       updateData.video = `${req.protocol}://${req.get("host")}/public/uploads/${
         files["video"][0].filename
@@ -130,24 +116,27 @@ const updateProjet = async (req, res) => {
     }
 
     // Mettre à jour l'objet Projet
-    const updatedProjet = await Projet.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    });
+    await projet.update(updateData);
 
-    res.json(updatedProjet);
+    // Recharger le projet mis à jour pour obtenir les dernières modifications
+    await projet.reload();
+
+    res.json(projet);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Controller function to delete phone brand by ID
+// Controller function to delete projet by ID
 const deleteProjetById = async (req, res) => {
   try {
-    const projet = await Projet.findByIdAndDelete(req.params.id);
+    const projet = await Projet.findByPk(req.params.id);
     if (!projet) {
       return res.status(404).json({ message: "Projet not found" });
     }
+
+    await projet.destroy();
+
     res.json({ message: "Projet deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -156,7 +145,6 @@ const deleteProjetById = async (req, res) => {
 
 module.exports = {
   getAllProjets,
-  getProjetByCategorie,
   getProjetBySlug,
   createProjet,
   updateProjet,

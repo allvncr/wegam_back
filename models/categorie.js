@@ -1,29 +1,42 @@
-const mongoose = require("mongoose");
+// categorie.js
+
+const { DataTypes } = require("sequelize");
 const slugify = require("slugify");
+const sequelize = require("../db/sequelize");
 
-const categorieSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "name est obligatoire"],
-    trim: true,
-    maxlength: [100, "name can not be more than 100 characters"],
-    unique: true,
+const Categorie = sequelize.define(
+  "Categorie",
+  {
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+      validate: {
+        len: [1, 100], // Longueur minimale: 1, Longueur maximale: 100
+      },
+    },
+    slug: {
+      type: DataTypes.STRING,
+      unique: true,
+    },
   },
-  slug: {
-    type: String,
-    unique: true,
-  },
+  {
+    timestamps: false, // Désactive la gestion automatique des timestamps (created_at et updated_at)
+  }
+);
+
+// Middleware pour générer le slug avant la création de la catégorie
+Categorie.beforeCreate((categorie, options) => {
+  if (categorie.name) {
+    categorie.slug = slugify(categorie.name, { lower: true });
+  }
 });
 
-categorieSchema.pre("save", async function (next) {
-  this.slug = slugify(this.name, { lower: true });
-  next();
+// Middleware pour mettre à jour le slug avant chaque mise à jour de la catégorie
+Categorie.beforeUpdate((categorie, options) => {
+  if (categorie.name) {
+    categorie.slug = slugify(categorie.name, { lower: true });
+  }
 });
 
-// Middleware pre pour mettre à jour le slug avant chaque mise à jour
-categorieSchema.pre("findOneAndUpdate", function (next) {
-  this._update.slug = slugify(this._update.name, { lower: true });
-  next();
-});
-
-module.exports = mongoose.model("Categorie", categorieSchema);
+module.exports = Categorie;

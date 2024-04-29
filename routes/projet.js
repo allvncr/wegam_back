@@ -7,6 +7,7 @@ const FILE_TYPE_MAP = {
   "image/jpg": "jpg",
   "image/jpeg": "jpeg",
   "image/webp": "webp",
+  "video/mp4": "mp4",
 };
 
 const storage = multer.diskStorage({
@@ -33,7 +34,6 @@ const upload = multer({ storage: storage });
 
 const {
   getAllProjets,
-  getProjetByCategorie,
   getProjetBySlug,
   createProjet,
   updateProjet,
@@ -46,12 +46,13 @@ router.post(
   "/",
   upload.fields([
     { name: "cover", maxCount: 1 },
-    { name: "images", maxCount: 10 },
+    { name: "images", maxCount: 20 },
+    { name: "video", maxCount: 1 },
   ]),
   createProjet
 );
 
-router.route("/categories").get(getProjetByCategorie);
+router.route("/categories");
 
 router.route("/:slug").get(getProjetBySlug);
 
@@ -62,6 +63,7 @@ router.patch(
   upload.fields([
     { name: "cover", maxCount: 1 },
     { name: "images", maxCount: 20 },
+    { name: "video", maxCount: 1 },
   ]),
   updateProjet
 );

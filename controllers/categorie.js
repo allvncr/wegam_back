@@ -1,20 +1,25 @@
 const Categorie = require("../models/categorie");
 const Projet = require("../models/projet");
+const slugify = require("slugify");
 
-// Controller function to get all phone brands
+// Controller function to get all categories
 const getAllCategories = async (req, res) => {
   try {
     // Recherchez toutes les catégories
-    const categories = await Categorie.find();
+    const categories = await Categorie.findAll();
 
     // Filtrer les catégories qui ont au moins un projet
     const categoriesWithProjects = await Promise.all(
       categories.map(async (categorie) => {
-        const count = await Projet.countDocuments({
-          categories: categorie._id,
+        const count = await Projet.count({
+          where: { categorieId: categorie.id },
         });
-        if (count > 0) {
+        if (!req.query.filter) {
           return categorie;
+        } else {
+          if (count > 0) {
+            return categorie;
+          }
         }
       })
     );
@@ -30,12 +35,14 @@ const getAllCategories = async (req, res) => {
   }
 };
 
-// Controller function to get phone brand by slug
+// Controller function to get category by slug
 const getCategorieBySlug = async (req, res) => {
   try {
-    const categorie = await Categorie.findOne({ slug: req.params.slug });
+    const categorie = await Categorie.findOne({
+      where: { slug: req.params.slug },
+    });
     if (!categorie) {
-      return res.status(404).json({ message: "Categorie introuvable" });
+      return res.status(404).json({ message: "Categorie not found" });
     }
     res.json(categorie);
   } catch (error) {
@@ -43,11 +50,10 @@ const getCategorieBySlug = async (req, res) => {
   }
 };
 
-// Controller function to create a new phone brand
+// Controller function to create a new category
 const createCategorie = async (req, res) => {
   try {
-    const categorie = new Categorie(req.body);
-    await categorie.save();
+    const categorie = await Categorie.create(req.body);
     res.status(201).json(categorie);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -56,35 +62,39 @@ const createCategorie = async (req, res) => {
 
 const updateCategorie = async (req, res) => {
   try {
-    const { id: categorieID } = req.params;
-    const categorie = await Categorie.findOneAndUpdate(
-      { _id: categorieID },
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      }
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    const slug = slugify(name, { lower: true });
+
+    const [updatedRowsCount, [updatedCategorie]] = await Categorie.update(
+      { name, slug }, // Utilisez le slug ici
+      { where: { id }, returning: true }
     );
 
-    if (!categorie) {
-      return res
-        .status(404)
-        .json({ msg: `No categorie with id : ${categorieID}` });
+    if (updatedRowsCount === 0) {
+      return res.status(404).json({ message: `No category with id : ${id}` });
     }
-    res.status(200).json({ categorie });
+    res.status(200).json(updatedCategorie);
   } catch (error) {
-    res.status(500).json({ msg: error });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Controller function to delete phone brand by ID
+// Controller function to delete category by ID
 const deleteCategorieById = async (req, res) => {
   try {
-    const categorie = await Categorie.findByIdAndDelete(req.params.id);
-    if (!categorie) {
-      return res.status(404).json({ message: "Categorie not found" });
+    const { id } = req.params;
+    const deletedRowCount = await Categorie.destroy({ where: { id } });
+
+    if (deletedRowCount === 0) {
+      return res.status(404).json({ message: "Category not found" });
     }
-    res.json({ message: "Categorie deleted" });
+    res.json({ message: "Category deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

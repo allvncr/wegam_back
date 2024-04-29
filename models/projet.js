@@ -1,61 +1,62 @@
-const mongoose = require("mongoose");
+const { DataTypes } = require("sequelize");
 const slugify = require("slugify");
+const sequelize = require("../db/sequelize");
+const Categorie = require("./categorie");
 
-const ProjetSchema = new mongoose.Schema({
-  categories: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Categorie",
-    },
-  ],
+const Projet = sequelize.define("Projet", {
   titre: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   slug: {
-    type: String,
+    type: DataTypes.STRING,
     unique: true,
   },
   description: {
-    type: String,
+    type: DataTypes.STRING,
+  },
+  description_eng: {
+    type: DataTypes.STRING,
   },
   cover: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   video: {
-    type: String,
+    type: DataTypes.STRING,
   },
-  images: [
-    {
-      type: String,
-    },
-  ],
+  images: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+  },
   color: {
-    type: String,
-    default: "#3f3f3f",
+    type: DataTypes.STRING,
+    defaultValue: "#3f3f3f",
   },
-  dateAjout: { type: Date, default: Date.now },
-  dateModification: { type: Date, default: Date.now },
-  aLaUne: { type: Boolean, default: false },
-  actif: { type: Boolean, default: true },
+  aLaUne: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  actif: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
 });
 
-ProjetSchema.pre("save", async function (next) {
-  this.slug = slugify(this.titre, { lower: true });
-  next();
-});
+// Association entre Projet et Categorie
+Projet.belongsTo(Categorie, { foreignKey: "categorieId" });
 
-ProjetSchema.pre("findOneAndUpdate", async function (next) {
-  if (typeof this._update.name === "string") {
-    this._update.slug = slugify(this._update.name, { lower: true });
+// Middleware pour générer le slug avant la création du projet
+Projet.beforeCreate((projet, options) => {
+  if (projet.titre) {
+    projet.slug = slugify(projet.titre, { lower: true });
   }
-
-  const update = this.getUpdate();
-  if (update) {
-    this.set({ dateModification: Date.now() });
-  }
-  next();
 });
 
-module.exports = mongoose.model("Projet", ProjetSchema);
+// Middleware pour mettre à jour le slug avant chaque mise à jour du projet
+Projet.beforeUpdate((projet, options) => {
+  if (projet.titre) {
+    projet.slug = slugify(projet.titre, { lower: true });
+  }
+});
+
+module.exports = Projet;
