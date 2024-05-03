@@ -13,6 +13,9 @@ const getAllProjets = async (req, res) => {
     if (req.query.aLaUne) {
       filter.aLaUne = req.query.aLaUne;
     }
+    if (req.query.actif) {
+      filter.actif = req.query.actif;
+    }
 
     const projets = await Projet.findAll({
       where: filter,

@@ -7,10 +7,8 @@ const notFound = require("./middleware/not-found");
 const auth = require("./routes/auth");
 const categorie = require("./routes/categorie");
 const projet = require("./routes/projet");
-
-const Categorie = require("./models/categorie");
-const Projet = require("./models/projet");
-const User = require("./models/user");
+const blog = require("./routes/blog");
+const upload = require("./routes/upload");
 
 sequelize
   .sync({ force: false }) // Utilisez force: true pour supprimer et recréer les tables à chaque synchronisation
@@ -27,10 +25,12 @@ app.use(express.json());
 app.use(cors());
 
 // routes
-app.use("/api", auth);
 app.use("/api/categories", categorie);
 app.use("/api/projets", projet);
+app.use("/api/blogs", blog);
 app.use("/public/uploads", express.static(__dirname + "/public/uploads"));
+app.use("/api", auth);
+app.use("/uploads", upload);
 app.use(notFound);
 
 const port = 3000;
