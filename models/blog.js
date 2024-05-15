@@ -9,16 +9,16 @@ const Article = sequelize.define("Article", {
   titre: {
     type: DataTypes.STRING,
     allowNull: false,
+    validate: {
+      len: [0, 1000], // Limiter la longueur de l'auteur à 1000 caractères
+    },
   },
   slug: {
     type: DataTypes.STRING,
     unique: true,
   },
   description: {
-    type: DataTypes.STRING,
-    validate: {
-      len: [0, 500], // Limiter la longueur de la description à 255 caractères
-    },
+    type: DataTypes.TEXT,
   },
   categorie: {
     type: DataTypes.STRING,
@@ -35,7 +35,7 @@ const Article = sequelize.define("Article", {
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
-      len: [0, 100], // Limiter la longueur de l'auteur à 100 caractères
+      len: [0, 1000], // Limiter la longueur de l'auteur à 1000 caractères
     },
   },
   actif: {
