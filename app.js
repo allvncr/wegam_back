@@ -8,6 +8,7 @@ const auth = require("./routes/auth");
 const categorie = require("./routes/categorie");
 const projet = require("./routes/projet");
 const blog = require("./routes/blog");
+const form = require("./routes/form");
 const upload = require("./routes/upload");
 
 sequelize
@@ -28,6 +29,7 @@ app.use(cors());
 app.use("/api/categories", categorie);
 app.use("/api/projets", projet);
 app.use("/api/blogs", blog);
+app.use("/api/form", form);
 app.use("/public/uploads", express.static(__dirname + "/public/uploads"));
 app.use("/api", auth);
 app.use("/uploads", upload);

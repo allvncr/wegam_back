@@ -23,6 +23,9 @@ const Article = sequelize.define("Article", {
   categorie: {
     type: DataTypes.STRING,
   },
+  entete: {
+    type: DataTypes.TEXT,
+  },
   contenu: {
     type: DataTypes.TEXT,
     allowNull: false,
