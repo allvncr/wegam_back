@@ -22,9 +22,6 @@ const Projet = sequelize.define("Projet", {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  video: {
-    type: DataTypes.STRING,
-  },
   images: {
     type: DataTypes.ARRAY(DataTypes.STRING),
   },

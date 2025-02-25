@@ -1,7 +1,7 @@
 const { Sequelize } = require("sequelize");
 
 // const sequelize = new Sequelize(
-//   "cp1962158p22_wegam",
+//   "cp1962158p22_wegamstudio",
 //   "cp1962158p22_admin",
 //   "1croy@bleStudio",
 //   {

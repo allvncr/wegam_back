@@ -17,13 +17,24 @@ const getAllProjets = async (req, res) => {
       filter.actif = req.query.actif;
     }
 
-    const projets = await Projet.findAll({
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 8;
+    const offset = (page - 1) * limit;
+
+    const { count, rows: projets } = await Projet.findAndCountAll({
       where: filter,
-      include: Categorie, // Utilisez simplement le modèle Categorie ici
+      include: Categorie,
       order: [["createdAt", "DESC"]],
+      limit: limit,
+      offset: offset,
     });
 
-    res.json(projets);
+    res.json({
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
+      projets: projets,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -32,7 +43,10 @@ const getAllProjets = async (req, res) => {
 // Controller function to get projet by slug
 const getProjetBySlug = async (req, res) => {
   try {
-    const projet = await Projet.findOne({ where: { slug: req.params.slug } });
+    const projet = await Projet.findOne({
+      where: { slug: req.params.slug },
+      include: Categorie,
+    });
     if (!projet) {
       return res.status(404).json({ message: "Projet introuvable" });
     }
@@ -45,38 +59,93 @@ const getProjetBySlug = async (req, res) => {
 // Controller function to create a new projet
 const createProjet = async (req, res) => {
   try {
-    const files = req.files;
-    if (!files || Object.keys(files).length === 0) {
-      return res.status(400).json("No images in the request");
-    }
-
+    const files = req.files || {};
     const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
     let cover = "";
     if (files["cover"] && files["cover"].length > 0) {
-      cover = files["cover"][0].filename;
-    }
-
-    let video = "";
-    if (files["video"] && files["video"].length > 0) {
-      video = files["video"][0].filename;
-    }
-
-    let images = [];
-    if (files["images"] && files["images"].length > 0) {
-      images = files["images"].map((file) => file.filename);
+      cover = `${basePath}${files["cover"][0].filename}`;
     }
 
     const projet = await Projet.create({
-      cover: `${basePath}${cover}`,
-      video: `${basePath}${video}`,
-      images: images.map((image) => `${basePath}${image}`),
+      cover: cover,
+      images: [], // Laisser le champ images vide par défaut
       ...req.body,
     });
 
     res.status(201).json(projet);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+};
+
+const addImageLink = async (req, res) => {
+  const id = req.params.id;
+  const { images } = req.body;
+
+  try {
+    const projet = await Projet.findByPk(id);
+
+    if (!projet) {
+      return res.status(404).json({ message: "Projet not found" });
+    }
+
+    // Ajouter les nouvelles images à la liste existante
+    projet.images = [...projet.images, ...images];
+
+    await projet.save();
+
+    res.status(200).json(projet);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+const uploadImage = async (req, res) => {
+  const id = req.params.id;
+  const { files } = req; // Assurez-vous d'avoir configuré Multer correctement pour gérer les fichiers
+
+  try {
+    const projet = await Projet.findByPk(id);
+
+    if (!projet) {
+      return res.status(404).json({ message: "Projet not found" });
+    }
+
+    // Convertir les fichiers en liens URL et les ajouter à la liste existante
+    const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+    const imageLinks = files.images.map(
+      (file) => `${basePath}${file.filename}`
+    ); // Assurez-vous que 'images' est correctement défini dans votre configuration Multer
+
+    projet.images = [...projet.images, ...imageLinks];
+
+    await projet.save();
+
+    res.status(200).json(projet);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+const clearImages = async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const projet = await Projet.findByPk(id);
+
+    if (!projet) {
+      return res.status(404).json({ message: "Projet not found" });
+    }
+
+    // Vider la liste d'images
+    projet.images = [];
+
+    await projet.save();
+
+    res.status(200).json({ message: "Images cleared successfully", projet });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 };
 
@@ -101,21 +170,6 @@ const updateProjet = async (req, res) => {
       updateData.cover = `${req.protocol}://${req.get("host")}/public/uploads/${
         files["cover"][0].filename
       }`;
-    }
-
-    // Si un fichier est envoyé pour la vidéo, mettre à jour la vidéo
-    if (files["video"]) {
-      updateData.video = `${req.protocol}://${req.get("host")}/public/uploads/${
-        files["video"][0].filename
-      }`;
-    }
-
-    // Si des fichiers sont envoyés pour les images, mettre à jour les images
-    if (files["images"]) {
-      updateData.images = files["images"].map(
-        (file) =>
-          `${req.protocol}://${req.get("host")}/public/uploads/${file.filename}`
-      );
     }
 
     // Mettre à jour l'objet Projet
@@ -152,4 +206,7 @@ module.exports = {
   createProjet,
   updateProjet,
   deleteProjetById,
+  addImageLink,
+  uploadImage,
+  clearImages,
 };
